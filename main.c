@@ -82,5 +82,5 @@ void doEffects()
 	shredScreenHorizontal();	
 	wrapScreenUp();
 	
-	wrapScreenDown();
+	//wrapScreenDown();
 }
