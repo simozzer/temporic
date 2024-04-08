@@ -1,2 +1,2 @@
 # temporic
-Repo for experimentation with orif screen effects
+Repo for experimentation with oric screen effects
