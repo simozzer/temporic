@@ -10,7 +10,7 @@
 _scrollColumnUp
 .(
   ; get the character from the 1st row and store it
-  ldy #0
+  ldy screen_area_top
   lda ScreenLineLookupLo,y
   sta _line_start_lo
   lda ScreenLineLookupHi,y
@@ -20,8 +20,9 @@ _scrollColumnUp
   sta temp_effect_char
 
   ; move all characters up one position
-  lda #1
-  sta _temp_row_index
+  ldy screen_area_top
+  iny
+  sty _temp_row_index
   __loopy
   ldy _temp_row_index
   lda ScreenLineLookupLo,Y
@@ -48,11 +49,11 @@ _scrollColumnUp
   ; go to the next line
   inc _temp_row_index
   lda _temp_row_index
-  cmp #27
+  cmp screen_area_top_plus_height
   bne __loopy
 
   ; put the character which was on the first row onto the last
-  ldy #26
+  ldy screen_area_max_row_index
   lda ScreenLineLookupLo,Y
   sta _line_start_lo
   lda ScreenLineLookupHi,y
@@ -77,7 +78,7 @@ _scrollColumnUp
 _scrollColumnDown
 .(
   ; get the character from the last row and store it
-  ldy #26
+  ldy screen_area_max_row_index
   lda ScreenLineLookupLo,y
   sta _line_start_lo
   lda ScreenLineLookupHi,y
@@ -87,8 +88,9 @@ _scrollColumnDown
   sta temp_effect_char
 
   ; move all characters down one position
-  lda #25
-  sta _temp_row_index
+  ldy screen_area_max_row_index
+  dey
+  sty _temp_row_index
   _loop_y
   ldy _temp_row_index
   lda ScreenLineLookupLo,Y
@@ -115,11 +117,11 @@ _scrollColumnDown
   ; go to the next line
   dec _temp_row_index
   lda _temp_row_index
-  cmp #0
+  cmp screen_area_top
   bpl _loop_y
 
   ; put the character which was on the last row onto the first
-  ldy #0
+  ldy screen_area_top
   lda ScreenLineLookupLo,Y
   sta _line_start_lo
   lda ScreenLineLookupHi,y
@@ -184,14 +186,14 @@ shredScreenVertical
 ; -------------------------------------------------------------------
 _wrapColumnUp
 .(
-  lda #0
+  lda screen_area_top
   sta inner_effect_temp
   loop
   jsr _scrollColumnUp
   jsr _effectDelay
   inc inner_effect_temp
   lda inner_effect_temp
-  cmp #27
+  cmp screen_area_top_plus_height
   bne loop
   rts
 .)
@@ -206,14 +208,14 @@ _wrapColumnUp
 ; -------------------------------------------------------------------
 _wrapColumnDown
 .(
-  lda #0
+  lda screen_area_top
   sta inner_effect_temp
   loop
   jsr _scrollColumnDown
   jsr _effectDelay
   inc inner_effect_temp
   lda inner_effect_temp
-  cmp #27
+  cmp screen_area_top_plus_height
   bne loop
   rts
 .)
@@ -228,14 +230,14 @@ _wrapColumnDown
 ; -------------------------------------------------------------------
 shredScreenUp
 .(
-  lda #2
+  lda screen_area_left
   sta effect_index
   loop
   jsr _wrapColumnUp
   inc effect_index
 
   lda effect_index
-  cmp #39
+  cmp screen_area_max_col_index
   bne loop
 
   rts
@@ -251,14 +253,14 @@ shredScreenUp
 ; -------------------------------------------------------------------
 shredScreenDown
 .(
-  lda #2
+  lda screen_area_left
   sta effect_index
   loop
   jsr _wrapColumnDown
   inc effect_index
 
   lda effect_index
-  cmp #39
+  cmp screen_area_max_col_index
   bne loop
 
   rts
@@ -277,64 +279,31 @@ shredScreenDown
 _scrollScreenUp
 .(
   ; copy 1st row into buffer
-  ldy #0
-  lda ScreenLineLookupLo,Y
-  sta _line_start_lo
-  lda ScreenLineLookupHi,y
-  sta _line_start_hi
-
-  ldy #2
-  copyFirstLineLoop
-  lda (_line_start),Y
-  sta _temp_row_data,y
-  iny
-  cpy #38
-  bne copyFirstLineLoop
+  lda #0
+  sta _source_row_index
+  jsr __copyRowToBuffer
 
   ; copy rest of the rows up
   ldy #1
-  sty _temp_row_index
-
-  copyAllLinesLoop
-  lda ScreenLineLookupLo,Y
-  sta _line_start_lo
-  lda ScreenLineLookupHi,y
-  sta _line_start_hi
+  copyLinesLoop
+  sty _source_row_index
   dey
-  lda ScreenLineLookupLo,Y
-  sta _secondary_line_start_lo
-  lda ScreenLineLookupHi,Y
-  sta _secondary_line_start_hi
+  sty _dest_row_index
+  tya
+  pha
+  jsr __copyRow
+  pla
+  tay
   iny
   iny
-  sty _temp_row_index
-
-  ldy #2
-  copyCharsInLineLoop
-  lda (_line_start),Y
-  sta (_secondary_line_start),Y
-  iny
-  cpy #39
-  bne copyCharsInLineLoop
-
-  ldy _temp_row_index
-  cpy #27
-  bne copyAllLinesLoop
-
+  cpy screen_area_height
+  bne copyLinesLoop
+  
   ;copy data from buffer onto last row
-  ldy #26
-  lda ScreenLineLookupLo,Y
-  sta _line_start_lo
-  lda ScreenLineLookupHi,Y
-  sta _line_start_hi
-
-  ldy #2
-  plotLastRow
-  lda _temp_row_data,Y
-  sta (_line_start),Y
-  iny
-  cpy #38
-  bne plotLastRow
+  ldy screen_area_height
+  dey
+  sty _dest_row_index
+  jsr __copyBufferToRow
 
   rts
 .)
@@ -349,64 +318,40 @@ _scrollScreenUp
 _scrollScreenDown
 .(
   ; copy last row into buffer
-  ldy #26
-  lda ScreenLineLookupLo,Y
-  sta _line_start_lo
-  lda ScreenLineLookupHi,y
-  sta _line_start_hi
-
-  ldy #2
-  copyLastLineLoop
-  lda (_line_start),Y
-  sta _temp_row_data,y
-  iny
-  cpy #38
-  bne copyLastLineLoop
+  ldy screen_area_top_plus_height
+  dey
+  sty _source_row_index
+  jsr __copyRowToBuffer
 
   ; copy rest of the rows down
-  ldy #25
+  ldy screen_area_height
+  dey
   sty _temp_row_index
 
   copyAllLinesLoop
-  lda ScreenLineLookupLo,Y
-  sta _line_start_lo
-  lda ScreenLineLookupHi,y
-  sta _line_start_hi
-  iny
-  lda ScreenLineLookupLo,Y
-  sta _secondary_line_start_lo
-  lda ScreenLineLookupHi,Y
-  sta _secondary_line_start_hi
-  dey
-  dey
-  sty _temp_row_index
-
-  ldy #2
-  copyCharsInLineLoop
-  lda (_line_start),Y
-  sta (_secondary_line_start),Y
-  iny
-  cpy #39
-  bmi copyCharsInLineLoop
-
   ldy _temp_row_index
-  cpy #$ff
+  sty _source_row_index
+  iny
+  sty _dest_row_index
+  tay
+  pha
+  
+  
+  jsr __copyRow
+  pla
+  tay
+  
+  dec _temp_row_index
+  ldy _temp_row_index
+  cpy #1
   bne copyAllLinesLoop
+
 
   ;copy data from buffer onto 1st row
   ldy #0
-  lda ScreenLineLookupLo,Y
-  sta _line_start_lo
-  lda ScreenLineLookupHi,Y
-  sta _line_start_hi
+  sta _dest_row_index
+  jsr __copyBufferToRow
 
-  ldy #2
-  plotFirstRow
-  lda _temp_row_data,Y
-  sta (_line_start),Y
-  iny
-  cpy #38
-  bne plotFirstRow
 
   rts
 .)
@@ -420,9 +365,9 @@ _scrollScreenDown
 ; Params: none
 ; Returns: null
 ; -------------------------------------------------------------------
-wrapScreenUp
+_wrapScreenUp
 .(
-  lda #0
+  lda screen_area_top
   sta effect_temp
   tay
   loop
@@ -430,7 +375,7 @@ wrapScreenUp
   ldy effect_temp
   iny
   sty effect_temp
-  cpy #27
+  cpy screen_area_top_plus_height
   bcc loop
   rts
 .)
@@ -443,9 +388,9 @@ wrapScreenUp
 ; Params: none
 ; Returns: null
 ; -------------------------------------------------------------------
-wrapScreenDown
+_wrapScreenDown
 .(
-  lda #0
+  lda screen_area_top
   sta effect_temp
   tay
   loop
@@ -453,7 +398,7 @@ wrapScreenDown
   ldy effect_temp
   iny
   sty effect_temp
-  cpy #27
+  cpy screen_area_top_plus_height
   bcc loop
   rts
 .)
@@ -487,5 +432,119 @@ shake
   jsr _scrollScreenLeft
   jsr _scrollScreenDown  
   jsr _scrollScreenRight
+  rts
+.)
+
+_source_row_index .byt 1
+_dest_row_index .byt 1
+
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; Copy contents of 1 row to another, within the context of the current 
+; screen metrics
+; params:
+;   _source_row_index: the index of the source row, within the current
+; screen rows
+;   _dest_row_index: the index of the target row, within the current 
+; screen rows
+; returns : null
+; -------------------------------------------------------------------
+__copyRow
+.(
+  ; lookup the start adddress of the source row
+  lda _source_row_index
+  clc
+  adc screen_area_top
+  tay 
+  lda ScreenLineLookupLo,Y
+  sta _line_start_lo
+  lda ScreenLineLookupHi,Y
+  sta _line_start_hi
+
+  ;lookup the start address of the target row
+  lda _dest_row_index
+  clc
+  adc screen_area_top
+  tay 
+  lda ScreenLineLookupLo,Y
+  sta _secondary_line_start_lo
+  lda ScreenLineLookupHi,Y
+  sta _secondary_line_start_hi
+
+  ldy screen_area_left
+  ldx #0
+  copyCharsLoop
+  lda (_line_start),Y
+  sta (_secondary_line_start),Y
+  iny
+  inx
+  cpx screen_area_width
+  bne copyCharsLoop
+
+  rts
+.)
+
+
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; __copyRowToBuffer:
+; Copy contents of 1 row to offscreen buffer, within the context of the current 
+; screen metrics
+; params:
+;   _source_row_index: the index of the source row, within the current
+; screen rows
+; returns : null
+; -------------------------------------------------------------------
+__copyRowToBuffer
+.(
+  lda _source_row_index
+  clc
+  adc screen_area_top
+  tay 
+  lda ScreenLineLookupLo,Y
+  sta _line_start_lo
+  lda ScreenLineLookupHi,Y
+  sta _line_start_hi
+
+  ldy screen_area_left
+  ldx #0
+  copyLoop
+  lda (_line_start),Y
+  sta _temp_row_data,y
+  inx
+  iny
+  cpx screen_area_width
+  bne copyLoop
+  rts
+.)
+
+
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; __copyBufferToRow:
+; Copy contents of offscreen buffer to 1 row, within the context of the current 
+; screen metrics
+; params:
+;   _dest_row_index: the index of the destination row, within the current
+; screen rows
+; returns : null
+; -------------------------------------------------------------------
+__copyBufferToRow
+.(
+  lda _dest_row_index
+  clc
+  adc screen_area_top
+  tay
+  lda ScreenLineLookupLo,Y
+  sta _line_start_lo
+  lda ScreenLineLookupHi,Y
+  sta _line_start_hi
+
+  ldy screen_area_left
+  ldx #0
+  copyLoop
+  lda _temp_row_data,Y
+  sta (_line_start),Y
+  iny
+  inx
+  cpx screen_area_width
+  bne copyLoop
   rts
 .)

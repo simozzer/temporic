@@ -16,6 +16,7 @@ void shredScreenLeft();
 void shredScreenRight();
 void shredScreenHorizontal();
 void wrapScreenUp();
+void wrapScreenDown();
 void shake();
 
 void main()
@@ -23,7 +24,7 @@ void main()
 	char i;
 	poke(0x26a,10);
 	//for(i=0;i<14;i++) {
-		printf("012345678901234567+-012345678901234567");
+		printf("--------------------------------------");
 		printf("ABCDEFGHIJKLMNOPQR-+STUVWYXZ0123456789");
 		printf("a12345678901234567+-012345678901234567");
 		printf("ABCDEFGHIJKLMNOPQR-+STUVWYXZ0123456789");
@@ -49,10 +50,11 @@ void main()
 		printf("ABCDEFGHIJKLMNOPQR-+STUVWYXZ0123456789");
 		printf("e12345678901234567+-012345678901234567");
 		printf("ABCDEFGHIJKLMNOPQR-+STUVWYXZ0123456789");
-		printf("f12345678901234567+-01234567890123456");
+		printf("#####################################");
 	//}
 	setMetricsForFullScreen();
 	doEffects();
+
 
 
 	setMetricsForLeftScreen();	
@@ -78,4 +80,7 @@ void doEffects()
 	shredScreenLeft();
 	shredScreenRight();
 	shredScreenHorizontal();	
+	wrapScreenUp();
+	
+	wrapScreenDown();
 }
