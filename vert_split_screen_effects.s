@@ -317,41 +317,32 @@ _scrollScreenUp
 ; -------------------------------------------------------------------
 _scrollScreenDown
 .(
-  ; copy last row into buffer
-  ldy screen_area_top_plus_height
-  dey
-  sty _source_row_index
+  ; copy 1st row into buffer
+  lda #0
+  sta _source_row_index
   jsr __copyRowToBuffer
 
-  ; copy rest of the rows down
-  ldy screen_area_height
-  dey
-  sty _temp_row_index
-
-  copyAllLinesLoop
-  ldy _temp_row_index
+  ; copy rest of the rows up
+  ldy #1
+  copyLinesLoop
   sty _source_row_index
-  iny
+  dey
   sty _dest_row_index
-  tay
+  tya
   pha
-  
-  
   jsr __copyRow
   pla
   tay
+  iny
+  iny
+  cpy screen_area_height
+  bne copyLinesLoop
   
-  dec _temp_row_index
-  ldy _temp_row_index
-  cpy #1
-  bne copyAllLinesLoop
-
-
-  ;copy data from buffer onto 1st row
-  ldy #0
-  sta _dest_row_index
+  ;copy data from buffer onto last row
+  ldy screen_area_height
+  dey
+  sty _dest_row_index
   jsr __copyBufferToRow
-
 
   rts
 .)
