@@ -17,7 +17,7 @@ void shredScreenRight();
 void shredScreenHorizontal();
 void wrapScreenUp();
 void wrapScreenDown();
-void shake();
+
 
 void main()
 {
@@ -50,7 +50,7 @@ void main()
 		printf("ABCDEFGHIJKLMNOPQR-+STUVWYXZ0123456789");
 		printf("e12345678901234567+-012345678901234567");
 		printf("ABCDEFGHIJKLMNOPQR-+STUVWYXZ0123456789");
-		printf("#####################################");
+		printf("012345678901234567+-01234567890123456");
 	//}
 	setMetricsForFullScreen();
 	doEffects();

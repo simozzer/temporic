@@ -143,7 +143,7 @@ _scrollColumnDown
 ; original state
 ; Returns: null
 ; -------------------------------------------------------------------
-shredScreenVertical
+_shredScreenVertical
 .(
   lda #0
   sta effect_temp
@@ -412,7 +412,7 @@ _effectDelay
 ; <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-shake
+_shake
 .(
   jsr _scrollScreenLeft
   jsr _scrollScreenUp
